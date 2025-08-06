@@ -1,0 +1,116 @@
+# API Reference
+
+## MCP Controller API
+
+### Agent Management
+
+1. **Create Agent**
+   - Endpoint: `POST /api/agents`
+   - Request Body:
+     ```json
+     {
+       "type": "trading",
+       "config": {
+         "risk_tolerance": 0.7,
+         "max_positions": 5
+       }
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "agent_id": "trading_001",
+       "status": "created"
+     }
+     ```
+
+2. **Assign Task**
+   - Endpoint: `POST /api/agents/{agent_id}/tasks`
+   - Request Body:
+     ```json
+     {
+       "task_type": "trade",
+       "parameters": {
+         "symbol": "BTC-USD",
+         "amount": 0.1,
+         "side": "buy"
+       }
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "task_id": "task_001",
+       "status": "assigned"
+     }
+     ```
+
+## Agent API
+
+### Trading Agent
+
+1. **Execute Trade**
+   - Endpoint: `POST /api/agents/{agent_id}/trades`
+   - Request Body:
+     ```json
+     {
+       "symbol": "ETH-USD",
+       "amount": 0.5,
+       "side": "buy",
+       "type": "market"
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "trade_id": "trade_001",
+       "status": "executed",
+       "revenue": 0.1
+     }
+     ```
+
+2. **Get Metrics**
+   - Endpoint: `GET /api/agents/{agent_id}/metrics`
+   - Response:
+     ```json
+     {
+       "performance": 0.85,
+       "uptime": 3600,
+       "transactions": 10
+     }
+     ```
+
+## Error Handling API
+
+1. **Report Error**
+   - Endpoint: `POST /api/errors`
+   - Request Body:
+     ```json
+     {
+       "type": "system_error",
+       "message": "Connection timeout",
+       "data": {
+         "timestamp": 1640995200,
+         "component": "trading_agent"
+       }
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "error_id": "error_001",
+       "status": "handled",
+       "revenue": 0.05
+     }
+     ```
+
+2. **Get Error Status**
+   - Endpoint: `GET /api/errors/{error_id}`
+   - Response:
+     ```json
+     {
+       "error_id": "error_001",
+       "status": "resolved",
+       "revenue": 0.05
+     }
+     ```
