@@ -1,0 +1,13 @@
+{
+  "current_version": "1.2.0",
+  "migrations": {
+    "1.1.0": {
+      "description": "Added match_score to jobs",
+      "script": "ALTER TABLE jobs ADD COLUMN match_score FLOAT"
+    },
+    "1.2.0": {
+      "description": "Added contacts array to grants",
+      "script": "ALTER TABLE grants ADD COLUMN contacts JSONB"
+    }
+  }
+}

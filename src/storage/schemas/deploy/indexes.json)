@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {"fields": ["posted"], "options": {"unique": false}},
+    {"fields": ["company"], "options": {"collation": {"locale": "en", "strength": 2}}},
+    {"fields": ["processed", "match_score"], "options": {}}
+  ],
+  "grants": [
+    {"fields": ["status", "deadline"], "options": {}}
+  ]
+}

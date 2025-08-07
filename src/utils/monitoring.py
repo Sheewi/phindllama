@@ -6,6 +6,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.metrics.export import ConsoleMetricExporter
+from prometheus_client import start_http_server, Gauge
 
 class MonitoringConfig:
     def __init__(self):
@@ -39,3 +40,10 @@ class MonitoringConfig:
             description="Request latency distribution",
             unit="ms"
         )
+        # Metrics
+        JOBS_FOUND = Gauge('jobs_found', 'Number of jobs discovered')
+        GRANTS_SUBMITTED = Gauge('grants_submitted', 'Number of grant applications')
+    def monitor_agents():
+        start_http_server(8000)
+        # Add metric updates in each agent class
+        

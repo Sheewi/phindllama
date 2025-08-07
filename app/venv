@@ -1,0 +1,6 @@
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install core dependencies
+pip install selenium beautifulsoup4 openai tweepy linkedin-api pydantic

@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Data Lake Schema for Autonomous Business Agents",
+  
+  "jobs": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "title": { "type": "string", "minLength": 5, "maxLength": 100 },
+      "company": { "type": "string", "minLength": 2 },
+      "posted": { "type": "string", "format": "date-time" },
+      "url": { "type": "string", "format": "uri" },
+      "processed": { "type": "boolean", "default": false },
+      "source": { 
+        "type": "string", 
+        "enum": ["indeed", "linkedin", "glassdoor", "custom"] 
+      },
+      "match_score": { "type": "number", "minimum": 0, "maximum": 1 },
+      "required_skills": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["id", "title", "company", "posted", "url"],
+    "additionalProperties": false
+  },
+
+  "grants": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "foundation": { "type": "string" },
+      "submitted": { "type": "string", "format": "date-time" },
+      "status": { 
+        "type": "string",
+        "enum": ["draft", "submitted", "rejected", "approved", "funded"] 
+      },
+      "amount": { "type": "number", "minimum": 0 },
+      "deadline": { "type": "string", "format": "date-time" },
+      "contacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "role": { "type": "string" }
+          }
+        }
+      }
+    },
+    "required": ["id", "foundation", "submitted", "status"],
+    "additionalProperties": false
+  },
+
+  "promotions": {
+    "type": "object",
+    "properties": {
+      "campaign_id": { "type": "string", "format": "uuid" },
+      "platform": { 
+        "type": "string",
+        "enum": ["twitter", "linkedin", "facebook", "instagram", "tiktok"] 
+      },
+      "content": { "type": "string" },
+      "metrics": {
+        "type": "object",
+        "properties": {
+          "impressions": { "type": "integer" },
+          "engagement_rate": { "type": "number" },
+          "conversions": { "type": "integer" }
+        }
+      }
+    }
+  },
+
+  "sales_leads": {
+    "type": "object",
+    "properties": {
+      "lead_id": { "type": "string", "format": "uuid" },
+      "contact": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "company": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string", "pattern": "^\\+?[\\d\\s-]+$" }
+        }
+      },
+      "status": {
+        "type": "string",
+        "enum": ["new", "contacted", "qualified", "lost"]
+      },
+      "value": { "type": "number", "minimum": 0 }
+    }
+  },
+
+  "work_projects": {
+    "type": "object",
+    "properties": {
+      "project_id": { "type": "string", "format": "uuid" },
+      "client": { "type": "string" },
+      "deliverables": { "type": "array", "items": { "type": "string" } },
+      "deadline": { "type": "string", "format": "date-time" },
+      "team": {
+        "type": "array",
+        "items": { "type": "string", "format": "email" }
+      }
+    }
+  }
+}
