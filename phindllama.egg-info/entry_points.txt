@@ -1,0 +1,2 @@
+[console_scripts]
+phindllama = phindllama.__main__:main

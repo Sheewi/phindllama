@@ -1,10 +1,10 @@
 # src/processing/financial_llm.py
 """Financial LLM implementation for analysis and predictions."""
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
-from transformers import pipeline
-from ..config.settings import Settings
+# from transformers import pipeline  # Lazy import inside _initialize_model
+from src.config.settings import Settings
 
 class FinancialLLM(ABC):
     """
@@ -22,9 +22,10 @@ class FinancialLLM(ABC):
         """Analyze market conditions and generate insights."""
         pass
         
-    def _initialize_model(self) -> pipeline.Pipeline:
+    def _initialize_model(self):
         """Initialize the LLM model."""
         try:
+            from transformers import pipeline  # Lazy import
             model_name = self.settings['model_name']
             task = self.settings['task']
             return pipeline(task, model=model_name)
@@ -35,4 +36,4 @@ class FinancialLLM(ABC):
     def predict_trend(self, historical_data: List[Any]) -> Dict[str, Any]:
         """Predict market trends using historical data."""
         prompt = self._construct_prompt(historical_data)
-        prediction = self.model(prompt)[0
+        prediction = self.model(prompt)[0]

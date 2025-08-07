@@ -2,9 +2,12 @@
 """Integration tests for system components."""
 import unittest
 from unittest.mock import Mock, patch
-from ..core.mcp_controller import MCPController
-from ..utils.error_handler import ErrorHandler
-from ..utils.scaling_manager import ScalingManager
+from core.mcp_controller import MCPController  # Updated import path
+# from src.utils.error_handler import ErrorHandler  # Ensure src/utils/error_handler.py exists, or update path if needed
+from utils.error_handler import ErrorHandler  # Updated import path; ensure 'src/utils/error_handler.py' exists
+# If the above import fails, try the following alternative import:
+# from utils.error_handler import ErrorHandler
+from utils.scaling_manager import ScalingManager  # Updated import path
 
 class TestSystemIntegration(unittest.TestCase):
     """Integration test suite for system components."""

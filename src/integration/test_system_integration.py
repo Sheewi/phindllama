@@ -3,10 +3,16 @@
 import unittest
 from unittest.mock import Mock, patch
 from pathlib import Path
-from ..core.mcp_controller import MCPController
-from ..utils.error_handler import ErrorHandler
-from ..utils.scaling_manager import ScalingManager
-from ..config.settings import Settings
+import sys
+import os
+
+# Add the project root to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from phindllama.core.mcp_controller import MCPController
+from phindllama.utils.error_handler import ErrorHandler
+from phindllama.utils.scaling_manager import ScalingManager
+from phindllama.config.settings import Settings
 
 class TestSystemIntegration(unittest.TestCase):
     """Integration test suite for system components."""

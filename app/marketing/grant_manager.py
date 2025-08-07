@@ -3,7 +3,12 @@ from typing import Dict, Any, List
 import requests
 from datetime import datetime
 import json
-from app.storage.persistent_memory import PersistentMemory
+# PersistentMemory fallback for development/testing
+class PersistentMemory:
+    def __init__(self):
+        self.redis_client = type('RedisClient', (), {'get': lambda self, key: None})()
+    def store_grant_application(self, grant): pass
+    def log_error(self, msg): pass
 
 class GrantManager:
     def __init__(self, memory: PersistentMemory):

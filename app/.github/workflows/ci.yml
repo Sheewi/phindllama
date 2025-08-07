@@ -1,3 +1,20 @@
 # .github/workflows/ci.yml
-- name: Run Slither
-  run: pip install slither-analyzer && slither .
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  slither:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install Slither and run analysis
+        run: pip install slither-analyzer && slither .

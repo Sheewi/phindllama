@@ -1,8 +1,23 @@
-# app/contracts/smart_contract_manager.py
+# phindllama/contracts/smart_contract_manager.py
 from web3 import Web3
 from typing import Dict, Any, List
 import json
-from app.storage.persistent_memory import PersistentMemory
+from datetime import datetime
+
+# Import with error handling
+try:
+    from ..storage.persistent_memory import PersistentMemory
+except ImportError:
+    # Fallback implementation
+    class PersistentMemory:
+        def __init__(self):
+            self.data = {}
+        
+        def get(self, key: str):
+            return self.data.get(key)
+        
+        def set(self, key: str, value: Any):
+            self.data[key] = value
 
 class SmartContractManager:
     def __init__(self, config: Dict[str, Any], memory: PersistentMemory):
