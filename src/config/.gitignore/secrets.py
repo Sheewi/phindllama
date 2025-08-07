@@ -1,0 +1,3 @@
+# Get these from https://infura.io/dashboard
+INFURA_KEY = "9b9786cc637d4f0e99c3cf53aff9d1b8"
+WALLET_ADDRESS = "0x52E3E5878501BfFc8E14Fc3a188367EdC810e1ae"

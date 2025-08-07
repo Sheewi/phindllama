@@ -1,17 +1,16 @@
 #!/bin/bash
-# start_services.sh
 
-# Initialize history file if missing
+# Initialize files
 touch /workspaces/phindllama/wallet_history.csv
 
-# Start services
-supervisord -c /workspaces/phindllama/supervisord.conf &
+# Start the adaptation service in background
+python /workspaces/phindllama/adaptation_service.py > adaptation.log 2>&1 &
 
-# Wait for services to start
-sleep 5
+# Start the dashboard
+streamlit run /workspaces/phindllama/dashboard.py \
+    --server.port=8501 \
+    --server.headless=true \
+    --browser.serverAddress=0.0.0.0
 
-# Verify services
-ps aux | grep -E 'supervisord|streamlit'
-
-# Keep container running
+# Keep container running (if using interactive mode)
 tail -f /dev/null

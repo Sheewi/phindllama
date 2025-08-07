@@ -1,33 +1,17 @@
-# wallet/profit_tracker.py
-import pandas as pd
+from config.blockchain import get_web3, validate_address
 from web3 import Web3
+import pandas as pd
 import os
 
 class WalletProfitTracker:
-    def __init__(self, w3: Web3, address: str):
-        self.w3 = w3
-        self.address = address
-        self.history_file = "/workspaces/phindllama/wallet_history.csv"  # Updated path
-        self.history = self._load_history()
-    
-    def _load_history(self):
-        try:
-            return pd.read_csv(self.history_file, parse_dates=['timestamp'])
-        except FileNotFoundError:
-            return pd.DataFrame(columns=['timestamp', 'balance_eth', 'usd_value'])
-    
-    def update_snapshot(self):
-        new_row = {
-            'timestamp': pd.Timestamp.now(),
-            'balance_eth': float(self.w3.from_wei(
-                self.w3.eth.get_balance(self.address),
-                'ether'
-            )),
-            'usd_value': 0  # Implement your USD conversion
-        }
-        self.history = pd.concat([self.history, pd.DataFrame([new_row])])
-        self.history.to_csv(self.history_file, index=False)
-    
-    @classmethod
-    def load(cls):
-        return cls(Web3(), "0x0")  # Dummy instance for loading
+    def __init__(self, w3: Web3 = None, address: str = None):
+        self.w3 = w3 or get_web3()
+        self.address = address or os.getenv('WALLET_ADDRESS')
+        if not validate_address(self.address):
+            raise ValueError("Invalid Ethereum address")
+        
+        self.history_file = os.path.join(
+            os.path.dirname(__file__), 
+            '../../data/wallet_history.csv'
+        )
+        os.makedirs(os.path.dirname(self.history_file), exist_ok=True)

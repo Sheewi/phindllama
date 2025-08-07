@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: phindllama
+Version: 0.1
+Requires-Dist: web3
+Requires-Dist: pandas
+Requires-Dist: streamlit
+Dynamic: requires-dist

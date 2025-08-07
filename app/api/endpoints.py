@@ -1,4 +1,12 @@
 # app/api/endpoints.py
+from fastapi.security import OAuth2PasswordBearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+@router.post("/generate", dependencies=[Depends(oauth2_scheme)])
+async def generate_text(prompt: str, token: str = Depends(oauth2_scheme)):
+    # Validate token and roles
+    if not auth.validate_token(token, roles=["user", "admin"]):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    # app/api/endpoints.py
 """API endpoints with security and validation."""
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
