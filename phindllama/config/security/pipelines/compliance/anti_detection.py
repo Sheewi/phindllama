@@ -16,3 +16,8 @@ class AntiDetection:
         """Human-like mouse movement coordinates"""
         return [(random.gauss(0, 1), random.gauss(0, 1)) 
                 for _ in range(random.randint(5, 15))]
+    class ChainAnalysisDeflector:
+        """Prevents chain clustering"""
+
+        def __init__(self):
+            self.mixers = ["Tornado", "Railgun"]
