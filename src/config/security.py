@@ -32,3 +32,4 @@ class SecurityConfig:
         """Validate API key against Secret Manager."""
         expected_key = self.get_secret("API_KEY")
         return api_key == expected_key
+        
