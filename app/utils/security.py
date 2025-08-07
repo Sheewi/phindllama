@@ -1,44 +1,19 @@
-# app/utils/security.py
-"""Security utilities and middleware."""
-from fastapi import FastAPI, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.middleware.cors import CORSMiddleware
-from jose import jwt
-from datetime import datetime, timedelta
-import logging
+import os
+from fastapi import HTTPException, Depends
+from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from google.cloud import secretmanager
 
-class SecurityMiddleware:
-    """Security middleware with authentication and rate limiting."""
-    def __init__(self, app: FastAPI):
-        self.app = app
-        self.setup_middlewares()
+class AuthHandler:
+    def __init__(self):
+        self.client = secretmanager.SecretManagerServiceClient()
+        self.api_key_name = os.getenv("API_KEY_NAME", "phindllama-api-key")
         
-    def setup_middlewares(self):
-        """Set up security middlewares."""
-        origins = [
-            "http://localhost:3000",
-            "https://your-domain.com"
-        ]
-        
-        self.app.add_middleware(
-            CORSMiddleware,
-            allow_origins=origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-        
-        self.app.add_middleware(
-            SecurityHeadersMiddleware,
-            security_headers=self._get_security_headers()
-        )
-        
-    def _get_security_headers(self) -> Dict[str, str]:
-        """Get security headers configuration."""
-        return {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Content-Security-Policy": "default-src 'self'",
-        }
+    async def get_secret(self, secret_id: str) -> str:
+        name = f"projects/{os.getenv('GCP_PROJECT')}/secrets/{secret_id}/versions/latest"
+        response = self.client.access_secret_version(request={"name": name})
+        return response.payload.data.decode("UTF-8")
+
+    async def validate_request(self, api_key: str = Depends(APIKeyHeader(name="x-api-key"))):
+        stored_key = await self.get_secret(self.api_key_name)
+        if api_key != stored_key:
+            raise HTTPException(status_code=403, detail="Invalid API key")

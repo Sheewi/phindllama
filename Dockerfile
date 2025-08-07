@@ -1,25 +1,18 @@
-# Dockerfile
-FROM python:3.9-slim
-
+# Builder
+FROM python:3.10 as builder
 WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+
+# Runtime
+FROM python:3.10-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
 COPY . .
 
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apt-get remove -y gcc python3-dev && \
-    apt-get autoremove -y
+# Health checks and graceful shutdown
+HEALTHCHECK --interval=30s CMD curl -f http://localhost:8000/health || exit 1
+STOPSIGNAL SIGTERM
 
-# Install runtime dependencies
-RUN pip install gunicorn gevent
-
-# Expose port
-EXPOSE 8080
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV LOG_LEVEL=INFO
-
-# Run command
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "--worker-class", "gevent", "--workers", "4", "app.main:app"]
+ENV PATH=/root/.local/bin:$PATH
+CMD ["gunicorn", "-b", ":8000", "-k", "uvicorn.workers.UvicornWorker", "--timeout", "120", "app.main:app"]

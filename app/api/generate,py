@@ -1,0 +1,36 @@
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from app.models.loader import ModelLoader
+from app.security import AuthHandler
+import json
+
+router = APIRouter()
+model = ModelLoader()
+auth = AuthHandler()
+
+@router.post("/generate")
+async def generate_text(
+    prompt: str,
+    _: str = Depends(auth.validate_request)
+):
+    try:
+        async def stream():
+            for chunk in self._safe_generate(prompt):
+                yield f"data: {json.dumps(chunk)}\n\n"
+                
+        return StreamingResponse(stream(), media_type="text/event-stream")
+        
+    except Exception as e:
+        logger.error(f"Generation failed: {str(e)}")
+        model.unload()  # Force clean slate
+        raise HTTPException(500, "Generation error - model reloaded")
+
+    def _safe_generate(self, prompt: str):
+        """Wrapper with automatic retry logic"""
+        for attempt in range(3):
+            try:
+                yield from model.generate(prompt)
+                break
+            except Exception:
+                if attempt == 2: raise
+                model.unload()
