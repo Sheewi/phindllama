@@ -1,0 +1,24 @@
+# .github/workflows/deploy.yml
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: google-github-actions/deploy-cloudrun@v0
+      with:
+        service-name: phindllama
+        region: us-central1
+        platform: managed
+        allow-unauthenticated: 'True'
+        set-env-vars: 'gcp-project=${{ secrets.GCP_PROJECT }}'
+        docker:
+          build: .
+          push: true
+          push-tag: gcr.io/${{ secrets.GCP_PROJECT }}/phindllama:latest
