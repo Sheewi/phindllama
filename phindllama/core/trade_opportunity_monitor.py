@@ -33,7 +33,46 @@ class TradeOpportunityMonitor:
             
         # Track opportunities with IDs
         self.opportunity_counter = 0
-        
+        # Background runner control
+        self._running = False
+        self._background_task = None
+
+    async def run_background_monitor(self, interval: float = 10.0):
+        """Continuously monitor and assign microagents or generate income."""
+        self._running = True
+        logger.info("TradeOpportunityMonitor background loop started.")
+        while self._running:
+            try:
+                # Example: Simulate opportunity detection (replace with real data source)
+                # You could fetch market data here and evaluate opportunities
+                dummy_data = {
+                    "asset_pair": "BTC/USDT",
+                    "exchange1": {"name": "Binance", "price": 65420.5},
+                    "exchange2": {"name": "Coinbase", "price": 65550.0}
+                }
+                found, opportunity = self.evaluate_arbitrage_opportunity(dummy_data)
+                if found and opportunity:
+                    await self.send_alert(opportunity)
+                    # Here you could trigger microagent assignment or income generation
+                    logger.info(f"Microagent assigned for opportunity: {opportunity['id']}")
+                # Add more opportunity checks as needed
+            except Exception as e:
+                logger.error(f"Error in background monitor: {str(e)}")
+            await asyncio.sleep(interval)
+
+    def start_background_monitor(self, interval: float = 10.0):
+        """Start the background monitor as an asyncio task."""
+        if not self._background_task:
+            loop = asyncio.get_event_loop()
+            self._background_task = loop.create_task(self.run_background_monitor(interval))
+
+    def stop_background_monitor(self):
+        """Stop the background monitor."""
+        self._running = False
+        if self._background_task:
+            self._background_task.cancel()
+            self._background_task = None
+    
     def add_webhook(self, url: str) -> bool:
         """Add a webhook URL for opportunity alerts."""
         if url not in self.alert_channels["webhooks"]:

@@ -11,6 +11,9 @@ import logging
 from datetime import datetime, timedelta
 from ..core.dynamic_task_manager import DynamicTaskManager
 from ..core.profit_monitor import profit_monitor
+from ..core.trade_opportunity_monitor import opportunity_monitor
+from ..core.strategy_manager import strategy_manager
+from ..core.performance_monitor import performance_monitor
 import os
 
 class DashboardManager:
@@ -21,6 +24,9 @@ class DashboardManager:
         self.active_connections: List[WebSocket] = []
         self.task_manager = None
         self.profit_monitor = profit_monitor
+        self.opportunity_monitor = opportunity_monitor
+        self.strategy_manager = strategy_manager
+        self.performance_monitor = performance_monitor
         self.wallet_data = {
             'total_balance': 45000.00,
             'daily_pnl': 0.00,
@@ -96,6 +102,19 @@ class DashboardManager:
         # Get profit monitoring data
         profit_data = self.profit_monitor.get_dashboard_data()
         
+        # Get trade opportunities data
+        active_opportunities = getattr(self.opportunity_monitor, 'active_alerts', [])
+        
+        # Get strategies data
+        strategies = list(getattr(self.strategy_manager, 'strategies', {}).values())
+        active_strategies = [s for s in strategies if getattr(s, 'is_active', False)]
+        
+        # Get performance metrics
+        perf_metrics = getattr(self.performance_monitor, 'collect_metrics', lambda: {})() 
+        
+        # Count active strategies
+        active_strategy_count = len(active_strategies)
+        
         return {
             'timestamp': datetime.now().isoformat(),
             'wallet': {
@@ -131,10 +150,10 @@ class DashboardManager:
             'system': {
                 'status': 'operational',
                 'uptime_hours': (datetime.now() - self.system_metrics['uptime']).total_seconds() / 3600,
-                'cpu_usage': 35.2,
-                'memory_usage': 68.5,
+                'cpu_usage': perf_metrics.get('cpu_usage', 35.2),
+                'memory_usage': perf_metrics.get('memory_usage', 68.5),
                 'network_status': 'connected',
-                'last_error': None
+                'last_error': perf_metrics.get('last_error', None)
             },
             'market': {
                 'btc_price': 65420.50,
@@ -146,6 +165,26 @@ class DashboardManager:
                 'current_tier': task_performance.get('scaling_status', {}).get('current_tier', 1),
                 'next_threshold': task_performance.get('scaling_status', {}).get('next_threshold', 500),
                 'auto_scaling': task_performance.get('scaling_status', {}).get('auto_scaling_active', False)
+            },
+            'opportunities': {
+                'count': len(active_opportunities),
+                'recent': active_opportunities[:5],  # Only show 5 most recent opportunities
+                'has_alerts': len(active_opportunities) > 0
+            },
+            'strategies': {
+                'active_count': active_strategy_count,
+                'total_count': len(strategies),
+                'active': [{
+                    'name': getattr(s, 'name', 'Unknown'),
+                    'type': getattr(getattr(s, 'type', None), 'value', 'unknown'),
+                    'risk_level': getattr(s, 'risk_level_text', 'Unknown'),
+                    'performance': getattr(s, 'performance_metrics', {})
+                } for s in active_strategies[:5]]  # Only show 5 active strategies
+            },
+            'performance': {
+                'metrics': perf_metrics,
+                'trend': perf_metrics.get('trend', 'stable'),
+                'recommendations': perf_metrics.get('recommendations', [])
             }
         }
     
@@ -316,6 +355,115 @@ async def track_expense(expense_data: Dict[str, Any]):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/api/strategies")
+async def get_strategies():
+    """Get all trading strategies."""
+    strategies = list(dashboard_manager.strategy_manager.strategies.values())
+    return {
+        "total": len(strategies),
+        "active": sum(1 for s in strategies if s.is_active),
+        "strategies": [{
+            "id": s.id,
+            "name": s.name,
+            "type": s.type.value,
+            "description": s.description,
+            "risk_level": s.risk_level,
+            "risk_level_text": s.risk_level_text,
+            "is_active": s.is_active,
+            "performance": s.performance_metrics
+        } for s in strategies]
+    }
+
+@app.post("/api/strategies")
+async def add_strategy(strategy_data: Dict[str, Any]):
+    """Add a new trading strategy."""
+    try:
+        # Validate required fields
+        required_fields = ["name", "type", "description", "parameters", "risk_level"]
+        for field in required_fields:
+            if field not in strategy_data:
+                return {"status": "error", "message": f"Missing required field: {field}"}
+        
+        # Create and add strategy
+        result = dashboard_manager.strategy_manager.add_strategy(**strategy_data)
+        await dashboard_manager.send_dashboard_update()
+        
+        return {"status": "success", "message": "Strategy added successfully", "strategy_id": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/strategies/{strategy_id}")
+async def get_strategy(strategy_id: str):
+    """Get a specific trading strategy."""
+    strategy = dashboard_manager.strategy_manager.get_strategy(strategy_id)
+    if not strategy:
+        return {"status": "error", "message": "Strategy not found"}
+    
+    return {
+        "id": strategy.id,
+        "name": strategy.name,
+        "type": strategy.type.value,
+        "description": strategy.description,
+        "parameters": strategy.parameters,
+        "performance_metrics": strategy.performance_metrics,
+        "is_active": strategy.is_active,
+        "created_at": strategy.created_at.isoformat(),
+        "last_updated": strategy.last_updated.isoformat(),
+        "risk_level": strategy.risk_level,
+        "risk_level_text": strategy.risk_level_text
+    }
+
+@app.patch("/api/strategies/{strategy_id}")
+async def update_strategy(strategy_id: str, strategy_data: Dict[str, Any]):
+    """Update a specific trading strategy."""
+    try:
+        result = dashboard_manager.strategy_manager.update_strategy(strategy_id, strategy_data)
+        if not result:
+            return {"status": "error", "message": "Strategy not found"}
+        
+        await dashboard_manager.send_dashboard_update()
+        return {"status": "success", "message": "Strategy updated successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/opportunities")
+async def get_trade_opportunities():
+    """Get active trade opportunities."""
+    opportunities = dashboard_manager.opportunity_monitor.active_alerts
+    return {
+        "count": len(opportunities),
+        "opportunities": opportunities
+    }
+
+@app.post("/api/opportunities/evaluate")
+async def evaluate_opportunity(opportunity_data: Dict[str, Any]):
+    """Evaluate a potential trade opportunity."""
+    try:
+        opportunity_type = opportunity_data.get("type", "")
+        if opportunity_type == "arbitrage":
+            is_opportunity, details = dashboard_manager.opportunity_monitor.evaluate_arbitrage_opportunity(opportunity_data)
+            if is_opportunity:
+                await dashboard_manager.send_dashboard_update()
+            return {
+                "is_opportunity": is_opportunity,
+                "details": details
+            }
+        else:
+            return {"status": "error", "message": f"Unsupported opportunity type: {opportunity_type}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/performance")
+async def get_performance_metrics():
+    """Get system performance metrics."""
+    metrics = dashboard_manager.performance_monitor.collect_metrics()
+    analysis = dashboard_manager.performance_monitor.analyze_performance(metrics)
+    return {
+        "metrics": metrics,
+        "analysis": analysis,
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Cloud Run."""
@@ -345,6 +493,18 @@ async def get_dashboard_ui():
             .chat-input { width: 100%; padding: 10px; background: #1e2328; border: none; color: #fff; }
             .task-item { background: #0b0e11; padding: 10px; margin: 5px 0; border-radius: 4px; }
             #status { position: fixed; top: 10px; right: 10px; padding: 10px; background: #02c076; border-radius: 4px; }
+            .empty-message { color: #7f8fa4; font-style: italic; text-align: center; padding: 10px; }
+            .opportunity-list, .strategy-list { max-height: 150px; overflow-y: auto; margin-top: 10px; }
+            .opportunity-item, .strategy-item { background: #0b0e11; padding: 10px; margin: 5px 0; border-radius: 4px; position: relative; }
+            .opportunity-item .opportunity-type { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-right: 5px; }
+            .type-arbitrage { background: #f0b90b; color: #0f1419; }
+            .type-trend { background: #02c076; color: #0f1419; }
+            .type-momentum { background: #f84960; color: #0f1419; }
+            .opportunity-profit { position: absolute; right: 10px; top: 10px; font-weight: bold; color: #02c076; }
+            .action-button { background: #f0b90b; color: #0f1419; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+            .risk-low { color: #02c076; }
+            .risk-medium { color: #f0b90b; }
+            .risk-high { color: #f84960; }
         </style>
     </head>
     <body>
@@ -393,6 +553,33 @@ async def get_dashboard_ui():
                 <div class="metric">
                     <span>Auto-Scaling:</span>
                     <span id="auto-scaling" class="status-operational">ACTIVE</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📊 Trading Strategies</h3>
+                <div class="metric">
+                    <span>Active Strategies:</span>
+                    <span class="metric-value" id="active-strategies">0</span>
+                </div>
+                <div class="metric">
+                    <span>Risk Profile:</span>
+                    <span id="risk-profile">Balanced</span>
+                </div>
+                <div id="strategy-list" class="strategy-list">
+                    <div class="empty-message">No active strategies</div>
+                </div>
+                <button class="action-button" id="add-strategy-btn">Add Strategy</button>
+            </div>
+            
+            <div class="card">
+                <h3>⚡ Trade Opportunities</h3>
+                <div class="metric">
+                    <span>Active Alerts:</span>
+                    <span class="metric-value" id="active-alerts">0</span>
+                </div>
+                <div id="opportunity-list" class="opportunity-list">
+                    <div class="empty-message">No current opportunities</div>
                 </div>
             </div>
             
@@ -502,6 +689,57 @@ async def get_dashboard_ui():
                 
                 // Update active tasks
                 updateActiveTasks(data.agents.active_tasks);
+                
+                // Update trade opportunities
+                if (data.opportunities) {
+                    document.getElementById('active-alerts').textContent = data.opportunities.count;
+                    
+                    // Update opportunities list
+                    const opportunityListEl = document.getElementById('opportunity-list');
+                    if (data.opportunities.recent && data.opportunities.recent.length > 0) {
+                        opportunityListEl.innerHTML = data.opportunities.recent.map(opp => `
+                            <div class="opportunity-item">
+                                <span class="opportunity-type type-${opp.type}">${opp.type}</span>
+                                <span>${opp.asset_pair || opp.asset || ''}</span>
+                                <span class="opportunity-profit">+${opp.estimated_profit ? (opp.estimated_profit * 100).toFixed(2) + '%' : '?'}</span>
+                                <div><small>${new Date(opp.timestamp).toLocaleTimeString()}</small></div>
+                            </div>
+                        `).join('');
+                    } else {
+                        opportunityListEl.innerHTML = '<div class="empty-message">No current opportunities</div>';
+                    }
+                }
+                
+                // Update strategies
+                if (data.strategies) {
+                    document.getElementById('active-strategies').textContent = data.strategies.active_count;
+                    
+                    // Calculate risk profile based on active strategies
+                    let riskProfile = "Balanced";
+                    if (data.strategies.active && data.strategies.active.length > 0) {
+                        const riskLevels = data.strategies.active.map(s => {
+                            if (s.risk_level === "Very Low" || s.risk_level === "Low") return 1;
+                            if (s.risk_level === "Moderate") return 2;
+                            return 3; // High or Very High
+                        });
+                        const avgRisk = riskLevels.reduce((a, b) => a + b, 0) / riskLevels.length;
+                        riskProfile = avgRisk < 1.5 ? "Conservative" : avgRisk > 2.5 ? "Aggressive" : "Balanced";
+                    }
+                    document.getElementById('risk-profile').textContent = riskProfile;
+                    
+                    // Update strategy list
+                    const strategyListEl = document.getElementById('strategy-list');
+                    if (data.strategies.active && data.strategies.active.length > 0) {
+                        strategyListEl.innerHTML = data.strategies.active.map(strategy => `
+                            <div class="strategy-item">
+                                <div>${strategy.name}</div>
+                                <small>Type: ${strategy.type}, Risk: <span class="risk-${strategy.risk_level.toLowerCase().replace(' ', '-')}">${strategy.risk_level}</span></small>
+                            </div>
+                        `).join('');
+                    } else {
+                        strategyListEl.innerHTML = '<div class="empty-message">No active strategies</div>';
+                    }
+                }
             }
             
             function updateActiveTasks(tasks) {
@@ -547,6 +785,19 @@ async def get_dashboard_ui():
             setInterval(() => {
                 ws.send(JSON.stringify({type: 'ping'}));
             }, 5000);
+            
+            // Add strategy button handler
+            document.getElementById('add-strategy-btn').addEventListener('click', function() {
+                fetch('/api/strategies')
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(`Available strategies: ${data.total}\nActive: ${data.active}\n\nUse the API to add custom strategies.`);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching strategies:', error);
+                        alert('Error fetching strategies. Please try again later.');
+                    });
+            });
         </script>
     </body>
     </html>
