@@ -10,6 +10,8 @@ from typing import Dict, Any, List
 import logging
 from datetime import datetime, timedelta
 from ..core.dynamic_task_manager import DynamicTaskManager
+from ..core.profit_monitor import profit_monitor
+import os
 
 class DashboardManager:
     """Manages real-time dashboard data and WebSocket connections."""
@@ -18,6 +20,7 @@ class DashboardManager:
         self.logger = logging.getLogger(__name__)
         self.active_connections: List[WebSocket] = []
         self.task_manager = None
+        self.profit_monitor = profit_monitor
         self.wallet_data = {
             'total_balance': 45000.00,
             'daily_pnl': 0.00,
@@ -30,6 +33,10 @@ class DashboardManager:
             'active_strategies': 0,
             'success_rate': 0.95
         }
+        
+        # Initialize with some sample income for testing
+        if os.environ.get('ENVIRONMENT') == 'development':
+            self._init_sample_data()
     
     async def connect(self, websocket: WebSocket):
         """Connect a new WebSocket client."""
@@ -70,12 +77,24 @@ class DashboardManager:
             for connection in disconnected:
                 self.disconnect(connection)
     
+    def _init_sample_data(self):
+        """Initialize sample income data for development."""
+        # Track some sample income for testing
+        self.profit_monitor.track_income(45.75, "trading", {"pair": "ETH/USDT", "strategy": "arbitrage"})
+        self.profit_monitor.track_income(23.50, "fees", {"service": "analysis", "client": "external"})
+        self.profit_monitor.track_income(87.25, "trading", {"pair": "BTC/USDT", "strategy": "swing"})
+        self.profit_monitor.track_expense(12.80, "infrastructure", {"service": "cloud_run", "provider": "gcp"})
+        self.profit_monitor.track_expense(5.25, "fees", {"type": "transaction", "network": "ethereum"})
+    
     async def get_dashboard_data(self) -> Dict[str, Any]:
         """Compile comprehensive dashboard data."""
         # Get task manager performance if available
         task_performance = {}
         if self.task_manager:
             task_performance = self.task_manager.get_performance_dashboard()
+            
+        # Get profit monitoring data
+        profit_data = self.profit_monitor.get_dashboard_data()
         
         return {
             'timestamp': datetime.now().isoformat(),
@@ -90,10 +109,18 @@ class DashboardManager:
             },
             'revenue': {
                 'daily_target': task_performance.get('revenue_metrics', {}).get('daily_target', 200),
-                'daily_actual': task_performance.get('revenue_metrics', {}).get('current_daily', 0),
-                'progress_percent': task_performance.get('revenue_metrics', {}).get('progress_percentage', 0),
-                'weekly_projection': task_performance.get('revenue_metrics', {}).get('current_daily', 0) * 7,
-                'monthly_projection': task_performance.get('revenue_metrics', {}).get('current_daily', 0) * 30
+                'daily_actual': profit_data.get('daily_income', 0),
+                'progress_percent': profit_data.get('target_achievement', 0),
+                'weekly_projection': profit_data.get('monthly_projection', 0) / 4,  # Monthly / 4 weeks
+                'monthly_projection': profit_data.get('monthly_projection', 0)
+            },
+            'profit': {
+                'daily': profit_data.get('daily_profit', 0),
+                'total': profit_data.get('total_profit', 0),
+                'roi_daily': profit_data.get('daily_roi', 0),
+                'roi_total': profit_data.get('total_roi', 0),
+                'annual_projection': profit_data.get('annual_projection', 0),
+                'top_sources': profit_data.get('top_income_sources', [])
             },
             'agents': {
                 'active_count': task_performance.get('agent_metrics', {}).get('active_agents', 0),
@@ -223,6 +250,71 @@ async def get_wallet_info():
         'supported_networks': ['Ethereum', 'Polygon', 'BSC', 'Arbitrum'],
         'connected_exchanges': ['Binance', 'Coinbase', 'Uniswap']
     }
+
+@app.get("/api/profit")
+async def get_profit():
+    """Get profit and income tracking data."""
+    return dashboard_manager.profit_monitor.get_profit_summary()
+
+@app.post("/api/income/track")
+async def track_income(income_data: Dict[str, Any]):
+    """
+    Track a new income event.
+    
+    Expected format:
+    {
+        "amount": 45.75,
+        "source": "trading",
+        "details": {"pair": "ETH/USDT", "strategy": "arbitrage"}
+    }
+    """
+    try:
+        amount = float(income_data.get("amount", 0))
+        source = income_data.get("source", "unknown")
+        details = income_data.get("details", {})
+        
+        if amount <= 0:
+            return {"status": "error", "message": "Amount must be greater than zero"}
+            
+        dashboard_manager.profit_monitor.track_income(amount, source, details)
+        await dashboard_manager.send_dashboard_update()
+        
+        return {
+            "status": "success",
+            "message": f"Income of ${amount:.2f} from {source} tracked successfully"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/expense/track")
+async def track_expense(expense_data: Dict[str, Any]):
+    """
+    Track a new expense event.
+    
+    Expected format:
+    {
+        "amount": 12.50,
+        "category": "infrastructure",
+        "details": {"service": "cloud_run", "provider": "gcp"}
+    }
+    """
+    try:
+        amount = float(expense_data.get("amount", 0))
+        category = expense_data.get("category", "unknown")
+        details = expense_data.get("details", {})
+        
+        if amount <= 0:
+            return {"status": "error", "message": "Amount must be greater than zero"}
+            
+        dashboard_manager.profit_monitor.track_expense(amount, category, details)
+        await dashboard_manager.send_dashboard_update()
+        
+        return {
+            "status": "success",
+            "message": f"Expense of ${amount:.2f} for {category} tracked successfully"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.get("/")
 async def get_dashboard_ui():

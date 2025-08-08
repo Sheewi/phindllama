@@ -13,6 +13,7 @@ python-dotenv>=1.0.0
 websockets>=12.0
 aiohttp>=3.9.0
 aiofiles>=23.0.0
+gunicorn>=20.1.0
 
 # Cloud and scaling
 boto3>=1.26.0

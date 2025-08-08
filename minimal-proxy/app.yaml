@@ -1,0 +1,4 @@
+runtime: python310
+
+env_variables:
+  CLOUD_RUN_URL: "https://phindllama-trading-system-u5d2kummnq-uc.a.run.app"

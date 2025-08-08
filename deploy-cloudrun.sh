@@ -34,7 +34,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --timeout 3600 \
     --concurrency 1000 \
     --min-instances 1 \
-    --max-instances 10 \
+    --max-instances 5 \
     --set-env-vars "ENVIRONMENT=production,DAILY_REVENUE_TARGET=200" \
     --project ${PROJECT_ID}
 

@@ -57,3 +57,18 @@ class EnvironmentConfig:
         }
         
         return defaults.get(self.env_name, {})
+
+import os
+
+def get_environment_variable(key: str, default: Any = None) -> Any:
+    """
+    Get value from environment variable.
+    
+    Args:
+        key: Environment variable key
+        default: Default value if not found
+        
+    Returns:
+        Value from environment or default
+    """
+    return os.environ.get(key, default)
