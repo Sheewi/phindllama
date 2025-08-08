@@ -102,6 +102,15 @@ class DashboardManager:
         # Get profit monitoring data
         profit_data = self.profit_monitor.get_dashboard_data()
         
+        # Get performance metrics
+        performance_metrics = self.performance_monitor.collect_metrics()
+        
+        # Get trade opportunities
+        opportunities = self.opportunity_monitor.get_dashboard_summary()
+        
+        # Get strategy data
+        strategy_data = self.strategy_manager.get_dashboard_data()
+        
         # Get trade opportunities data
         active_opportunities = getattr(self.opportunity_monitor, 'active_alerts', [])
         
