@@ -316,6 +316,11 @@ async def track_expense(expense_data: Dict[str, Any]):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Cloud Run."""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
 @app.get("/")
 async def get_dashboard_ui():
     """Serve the dashboard UI."""
